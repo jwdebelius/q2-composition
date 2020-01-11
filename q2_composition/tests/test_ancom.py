@@ -66,6 +66,34 @@ class AncomTests(TestPluginBase):
             self.assertIn('<th>Group</th>', html)
             self.assertIn('<th>O1</th>', html)
 
+    def test_ancom_threshhold(self):
+        t = pd.DataFrame([[9, 9, 9, 19, 19, 19],
+                          [10, 11, 10, 20, 20, 20],
+                          [9, 10, 9, 9, 10, 9],
+                          [9, 10, 9, 9, 9, 8],
+                          [9, 10, 9, 9, 9, 9],
+                          [9, 10, 9, 9, 9, 10],
+                          [9, 12, 9, 9, 9, 11]],
+                         index=['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'O7'],
+                         columns=['S1', 'S2', 'S3', 'S4', 'S5', 'S6']).T
+        c = qiime2.CategoricalMetadataColumn(
+                pd.Series(['a', 'a', 'a', '1', '1', '1'], name='n',
+                          index=pd.Index(['S1', 'S2', 'S3',
+                                          'S4', 'S5', 'S6'], name='id'))
+        )
+        ancom(output_dir=self.temp_dir.name, table=t+1, metadata=c, threshhold=0.8)
+
+        res = pd.read_csv(os.path.join(self.temp_dir.name, 'ancom.tsv'),
+                          index_col=0, sep='\t')
+        exp = pd.DataFrame(
+            {'W': np.array([5, 5, 2, 2, 2, 2, 2]),
+             'Reject null hypothesis': np.array([True, True, False, False,
+                                                 False, False, False],
+                                                dtype=bool)},
+            index=['O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'O7'],)
+        # 5/(7-1) = 0.8333 > 0.80
+        pdt.assert_frame_equal(res, exp)
+
     def test_ancom_3class_anova(self):
         t = pd.DataFrame([[9, 9, 19, 19, 29, 29],
                           [10, 11, 20, 20, 29, 28],

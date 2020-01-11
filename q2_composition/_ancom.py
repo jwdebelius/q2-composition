@@ -41,6 +41,7 @@ def transform_functions():
 def ancom(output_dir: str,
           table: pd.DataFrame,
           metadata: qiime2.CategoricalMetadataColumn,
+          threshhold: None,
           transform_function: str = 'clr',
           difference_function: str = None) -> None:
     metadata = metadata.filter_ids(table.index)
@@ -55,6 +56,9 @@ def ancom(output_dir: str,
                                 metadata.to_series(),
                                 significance_test=f_oneway)
     ancom_results[0].sort_values(by='W', ascending=False, inplace=True)
+    if threshhold is not None:
+        count_thresh = threshhold * (len(ancom_results) - 1)
+        ancom_results[0]['reject'] = ancom_results['W'] > count_thresh
     ancom_results[0].rename(columns={'reject': 'Reject null hypothesis'},
                             inplace=True)
     significant_features = ancom_results[0][
